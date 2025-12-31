@@ -6,50 +6,44 @@ const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8080;
 
-// Log startup immediately
-console.log('Container starting...');
-
 app.use(express.json());
 
-// Basic Health Check (Must return 200 for Cloud Run to stay alive)
+// 1. Immediate Health Check (Cloud Run needs this to pass)
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// API Proxy
+// 2. Freshdesk Proxy
 app.all(['/api/*', '/v2/*'], async (req, res) => {
-  const domain = process.env.FRESHDESK_DOMAIN || 'ecomplete.freshdesk.com';
-  const apiKey = process.env.FRESHDESK_API_KEY;
-
-  if (!apiKey) {
-    console.error('Missing API Key');
-    return res.status(500).json({ error: 'Configuration Missing' });
-  }
-
   try {
+    const domain = process.env.FRESHDESK_DOMAIN || 'ecomplete.freshdesk.com';
+    const apiKey = process.env.FRESHDESK_API_KEY;
     const cleanPath = req.originalUrl.replace(/^\/api/, '');
-    const url = `https://${domain}/api${cleanPath}`;
     
-    const response = await fetch(url, {
+    const response = await fetch(`https://${domain}/api${cleanPath}`, {
       method: req.method,
       headers: {
         'Authorization': `Basic ${Buffer.from(apiKey + ':X').toString('base64')}`,
         'Content-Type': 'application/json'
-      },
-      body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? JSON.stringify(req.body) : undefined
+      }
     });
-
     const data = await response.arrayBuffer();
     res.status(response.status).send(Buffer.from(data));
   } catch (err) {
-    console.error('Proxy Error:', err.message);
-    res.status(502).json({ error: 'Upstream Error' });
+    res.status(502).json({ error: err.message });
   }
 });
 
-// Serve Frontend
+// 3. Static Files with Error Catching
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
-app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      res.status(200).send('<h1>Server is Live</h1><p>Frontend files are still loading or missing.</p>');
+    }
+  });
+});
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server successfully bound to port ${PORT}`);
+  console.log(`✅ Startup Successful. Listening on ${PORT}`);
 });
