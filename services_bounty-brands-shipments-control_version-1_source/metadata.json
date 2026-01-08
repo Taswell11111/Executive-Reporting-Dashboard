@@ -1,5 +1,0 @@
-{
-  "name": "Bounty Brands Shipments Control",
-  "description": "A comprehensive dashboard for tracking outbound shipments and inbound returns, featuring data visualization, stale shipment alerts, and CSV data management.",
-  "requestFramePermissions": []
-}
