@@ -1,0 +1,5 @@
+{
+  "name": "Ecomplete_Executive Reporting Dashboard_Modulised",
+  "description": "A specialized dashboard for Ecomplete Commerce to visualise Freshdesk ticket activity with Gemini-powered summaries, adhering to strict styling and data fetching constraints.",
+  "requestFramePermissions": []
+}
